@@ -1,0 +1,53 @@
+#include "nRF24L01.h" //NRF24L01 library created by TMRh20 https://github.com/TMRh20/RF24
+#include "RF24.h"
+#include "SPI.h"
+
+#define APost 2
+#define CPost 3
+#define BPost 4
+
+unsigned long touching;
+
+int SentMessage[1] = {000}; 
+RF24 radio(9,10); // NRF24L01 used SPI pins + Pin 9 and 10 on the NANO
+
+const uint64_t pipe = 0xE6E6E6E6E6E6; // Needs to be the same for communicating between 2 NRF24L01 
+
+void setup()
+{
+  pinMode(APost, INPUT_PULLUP);
+  pinMode(CPost, INPUT_PULLUP);
+  pinMode(BPost, OUTPUT);
+  digitalWrite(APost,HIGH);
+  digitalWrite(CPost, HIGH);
+  digitalWrite(BPost, LOW);
+
+  touching = 0;
+  
+  radio.begin(); // Start the NRF24L01
+  radio.openWritingPipe(pipe); // Get NRF24L01 ready to transmit
+}
+
+void loop()
+{
+  if (millis() <= touching + 500)
+  {
+    SentMessage[0] = 011;
+    radio.write(SentMessage, 1);
+  }
+  else if (digitalRead(CPost) == LOW)    // If switch is pressed
+  { 
+      SentMessage[0] = 100;
+      radio.write(SentMessage, 1);      // Send pressed data to NRF24L01
+  }
+  else if (digitalRead(APost) == LOW)
+  {
+    touching = millis();
+  }
+  else 
+  {
+      SentMessage[0] = 000;
+      radio.write(SentMessage, 1);      // Send idle data to NRF24L01
+  }
+  delay(2);
+}
