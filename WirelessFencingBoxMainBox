@@ -1,0 +1,121 @@
+#include "nRF24L01.h" // NRF24L01 library created by TMRh20 https://github.com/TMRh20/RF24
+#include "RF24.h"
+#include "SPI.h"
+
+#define TouchLeft 4
+#define BellLeft 5
+#define BellRight 6
+#define TouchRight 7
+#define debug 3
+
+int LTimer;
+int RTimer;
+
+int ReceivedMessage[1] = {000}; // Used to store value received by the NRF24L01
+RF24 radio(9, 10); // NRF24L01 SPI pins. Pin 9 and 10 on the Nano
+
+const uint64_t pipe = 0xE6E6E6E6E6E6; // Needs to be the same for communicating between 2 NRF24L01
+
+void setup(void)
+{
+  radio.begin(); // Start the NRF24L01
+
+  radio.openReadingPipe(1, pipe); // Get NRF24L01 ready to receive
+
+  radio.startListening(); // Listen to see if information received
+
+  pinMode(TouchRight, OUTPUT);
+  pinMode(BellRight, OUTPUT);
+  pinMode(BellLeft, OUTPUT);
+  pinMode(TouchLeft, OUTPUT);
+  pinMode(debug, OUTPUT);
+
+  LTimer = 0;
+  RTimer = 0;
+}
+
+void loop(void)
+{
+  while (radio.available())
+  {
+    radio.read(ReceivedMessage, 1); // Read information from the NRF24L01
+
+    if (ReceivedMessage[0] == 110) // Indicates switch is pressed
+    {
+      digitalWrite(BellLeft, HIGH);
+    }
+    else if (ReceivedMessage[0] == 111)
+    {
+      TouchL();
+    }
+    else if (ReceivedMessage[0] == 100) // Indicates switch is pressed
+    {
+      digitalWrite(BellRight, HIGH);
+    }
+    else if (ReceivedMessage[0] == 011)
+    {
+      TouchR();
+    }
+    else
+    {
+      digitalWrite(TouchLeft, LOW);
+      digitalWrite(BellLeft, LOW);
+      digitalWrite(BellRight, LOW);
+      digitalWrite(TouchRight, LOW);
+    }
+    if (millis() - LTimer < 1500)
+    {
+      digitalWrite(TouchLeft, HIGH);
+    }
+    else
+    {
+      LTimer = 0;
+    }
+    if (millis() - RTimer < 1500)
+    {
+      digitalWrite(TouchRight, HIGH);
+    }
+    else
+    {
+      RTimer = 0;
+    }
+    if (millis() > 30000)
+    {
+      digitalWrite(debug, HIGH);
+    }
+  }
+}
+
+void TouchR()
+{
+  if (millis() - LTimer <= 40)
+  {
+    RTimer = millis();
+    LTimer = millis();
+  }
+  else if (RTimer > 0)
+  {
+    RTimer = millis();
+  }
+  else
+  {
+    RTimer = millis();
+  }
+}
+
+void TouchL()
+{
+  if (millis() - RTimer <= 40)
+  {
+    RTimer = millis();
+    LTimer = millis();
+  }
+  else if (LTimer > 0)
+  {
+    LTimer = millis();
+  }
+  else
+  {
+    LTimer = millis();
+  }
+}
